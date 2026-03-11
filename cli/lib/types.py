@@ -12,3 +12,8 @@ class SimilarityResult(TypedDict):
     score: float
     title: str
     description: str
+
+class ChunkMetaData(TypedDict):
+    movie_idx: int
+    chunk_idx: int
+    total_chunks: int
