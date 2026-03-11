@@ -6,6 +6,7 @@ import os
 from pathlib import Path
 import json
 from lib.utils import load_movies , cosine_similarity
+import re
 
 class SemanticSearch:
     def __init__(self, model_string = "all-MiniLM-L6-v2"):
@@ -72,8 +73,48 @@ class SemanticSearch:
                 "description": doc["description"] 
             })
         return results
+
+## Util functions
+def fixed_size_chunking(text: str, chunk_size=200) -> List[str]:
+    words = text.split()
+    chunks = []
+    for i in range(0,len(words), chunk_size):
+        chunks.append(" ".join(words[i:i+chunk_size]))
+    return chunks
+
+def overlap_chunking(text: str, overlap=0,chunk_size=200) -> List[str]:
+    words = text.split()
+    chunks = []
+    if chunk_size < overlap:
+        raise ValueError("overlap can't be more than chunk_size")
     
-def search_documents(query, limit):
+    step_size = chunk_size - overlap
+    for i in range(0,len(words), step_size):
+        chunk_words = words[i:i+chunk_size]
+        if len(chunk_words) <= overlap:
+            continue
+        chunks.append(" ".join(chunk_words))
+    
+    return chunks
+
+def semantic_chunk(text: str, overlap=0,max_chunk_size=4):
+    senteces = re.split(r"(?<=[.!?])\s+",text)
+    chunks = []
+    if max_chunk_size < overlap:
+        raise ValueError("overlap can't be more than max_chunk_size")
+    
+    step_size = max_chunk_size - overlap
+    for i in range(0,len(senteces), step_size):
+        chunk_words = senteces[i:i+max_chunk_size]
+        if len(chunk_words) <= overlap:
+            continue
+        chunks.append(" ".join(chunk_words))
+    
+    return chunks
+
+
+## API Functions
+def search_documents(query, limit=5):
     ss = SemanticSearch()
     movies = load_movies()
     ss.load_or_create_embeddings(movies)
@@ -81,9 +122,13 @@ def search_documents(query, limit):
     results = ss.search(query, limit)
     for i, res in enumerate(results):
         print(f"{i}. {res['title']} ({res['score']})\n{res['description'][:100]}...")
-        
 
-            
+def chunk_text(text, overlap=0, max_chunk_size=4):
+    chunks = semantic_chunk(text, overlap,max_chunk_size)
+    print(f"Sematic {max_chunk_size} sentences")
+    for i, chunk in enumerate(chunks):
+        print(f"{i+1}. {chunk}")
+
 def verify_model():
     semantic_search = SemanticSearch()
     print(f"Model loaded: {semantic_search.model}")

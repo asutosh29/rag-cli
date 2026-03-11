@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from lib.semantic_search import verify_model, embed_text, verify_embeddings, embed_query_text, search_documents
+from lib.semantic_search import verify_model, embed_text, verify_embeddings, embed_query_text, search_documents, chunk_text, overlap_chunking
 import argparse
 
 def main():
@@ -18,9 +18,17 @@ def main():
     search_parser = subparser.add_parser("search", help="Search nearest documents")
     search_parser.add_argument("query", type=str, help="Search query")
     search_parser.add_argument("--limit",type=int, default=5, help="Number of top results")
+
+    chunk_parser = subparser.add_parser("chunk", help="Chunk the documents according to given chunking parameter")
+    chunk_parser.add_argument("text", type=str,help="text to be chunked")
+    chunk_parser.add_argument("--overlap", type=int,default=0,help="number of words to be overlapped between chunks")
+    chunk_parser.add_argument("--max-chunk-size", type=int, default=4,help="number of words to be chunked in a single chunk")
+
     args = parser.parse_args()
 
     match args.command:
+        case "chunk":
+            chunk_text(args.text, args.overlap, args.max_chunk_size, )
         case "search":
             search_documents(args.query, args.limit)
         case "verify":
