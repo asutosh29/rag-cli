@@ -1,13 +1,13 @@
 from sentence_transformers import SentenceTransformer
 from typing_extensions import List
-from lib.types import Movie, MovieDataSet, SimilarityResult, ChunkMetaData
+from lib.types import Movie, MovieDataSet, SimilarityResult, ChunkMetaData, AllChunkMetaData, ChunkSimilarityResult, SearchChunkResult
 import numpy as np
 import os
 from pathlib import Path
 import json
 from lib.utils import load_movies , cosine_similarity
 import re
-
+from typing import DefaultDict
 class SemanticSearch:
     def __init__(self, model_string = "all-MiniLM-L6-v2") -> None:
         model = SentenceTransformer(model_string)
@@ -21,7 +21,7 @@ class SemanticSearch:
         if not text or not text.strip():
             raise ValueError("Input text cannot be empty for embedding generation")
         
-        embeddings = self.model.encode([text.strip()])
+        embeddings = self.model.encode([text.strip()], show_progress_bar=True)
         return embeddings[0]
     
     def build_embeddings(self, documents: List[Movie]):
@@ -79,7 +79,7 @@ class ChunkedSemanticSearch(SemanticSearch):
     def __init__(self, model_name = "all-MiniLM-L6-v2") -> None:
         super().__init__(model_name)
         self.chunk_embeddings = None
-        self.chunk_metadata = None
+        self.chunk_metadata: AllChunkMetaData | None = None
         self.chunk_embedding_path = Path("cache/chunk_embeddings.npy")
         self.chunk_metadata_path = Path("cache/chunk_metadata.json")
 
@@ -101,7 +101,7 @@ class ChunkedSemanticSearch(SemanticSearch):
                 }
                 chunks.append(doc_chunk)
                 chunk_metadata.append(meta)
-        self.chunk_embeddings = self.model.encode(chunks) 
+        self.chunk_embeddings = self.model.encode(chunks, show_progress_bar=True) 
         self.chunk_metadata = chunk_metadata  
         np.save(file=self.chunk_embedding_path, arr=self.chunk_embeddings)
         with open(self.chunk_metadata_path,'w') as f:
@@ -128,7 +128,45 @@ class ChunkedSemanticSearch(SemanticSearch):
             return self.chunk_embeddings
     
         return self.build_chunk_embeddings(documents)
-        
+    
+    def search_chunks(self, query: str, limit=5):
+        query_embedding = self.generate_embedding(query)
+        chunk_scores: List[ChunkSimilarityResult] = []
+        movie_idx_to_scores = DefaultDict(lambda: 0)
+        # Compute all similarity scores
+        for idx in range(len(self.chunk_embeddings)):
+            chunk_embedding = self.chunk_embeddings[idx]
+            metadata = self.chunk_metadata["chunks"][idx]
+            midx, cidx = metadata["movie_idx"], metadata["chunk_idx"]
+
+            sim_score = cosine_similarity(query_embedding, chunk_embedding)
+            chunk_similarity_result: ChunkSimilarityResult = {
+                "chunk_idx": cidx,
+                "movie_idx": midx,
+                "score": sim_score
+            }
+            # Store score metadata
+            chunk_scores.append(chunk_similarity_result)
+                        
+            # Calc the aggregate scores.
+            # This is required since in the end we want to pull out a MOVIE based the highest sim score
+            # So natual choice for aggregation is max pooling
+            movie_idx_to_scores[midx] = max(sim_score, movie_idx_to_scores[midx]) # defaultdict assigns 0 to any new key
+
+        movie_scores_sorted = sorted(movie_idx_to_scores.items(), key=lambda x: x[1], reverse=True)
+        res: List[SearchChunkResult] = []
+        for midx, score in movie_scores_sorted[:limit]:
+            doc: Movie = self.document_map[midx]
+            search_chunk_results: SearchChunkResult = {
+            "id": doc["id"],
+            "title": doc["title"],
+            "document": doc["description"],
+            "score": round(score, 4),
+            "metadata": {}}
+            res.append(search_chunk_results)
+
+        return res
+
 ## Util functions
 def fixed_size_chunking(text: str, chunk_size=200) -> List[str]:
     words = text.split()
@@ -169,6 +207,15 @@ def semantic_chunk(text: str, overlap=0,max_chunk_size=4)-> List[str]:
 
 
 ## API Functions
+def search_chunk_documents(query, limit=5):
+    ss = ChunkedSemanticSearch()
+    movies = load_movies()
+    ss.load_or_create_chunk_embeddings(movies)
+    results = ss.search_chunks(query, limit)
+    for i, res in enumerate(results):
+        print(f"\n{i}. {res['title']} (score: {res['score']:.4f})")
+        print(f"   {res['document'][:100]}...")
+
 def embed_chunks():
     movies = load_movies()
     css = ChunkedSemanticSearch()

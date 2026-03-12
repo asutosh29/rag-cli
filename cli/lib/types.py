@@ -17,3 +17,19 @@ class ChunkMetaData(TypedDict):
     movie_idx: int
     chunk_idx: int
     total_chunks: int
+
+class AllChunkMetaData(TypedDict):
+    chunks: List[ChunkMetaData]
+    total_chunks: int
+
+class ChunkSimilarityResult(TypedDict):
+    chunk_idx: int
+    movie_idx: int
+    score: float
+
+class SearchChunkResult(TypedDict):
+    id: int
+    title: str
+    document: str
+    score: float
+    metadata: dict
