@@ -1,7 +1,7 @@
 from langchain.chat_models import init_chat_model
 from langchain_core.messages import AIMessage
 from langchain_groq import ChatGroq
-from lib.utils import PROMPT_PATH
+from lib.utils import PROMPT_PATH, load_prompt
 
 
 from dotenv import load_dotenv
@@ -33,12 +33,24 @@ def chat(prompt: str,verbose=False):
             return result.content
 
 def spell_check(text):
-    prompt = None
-    with open(PROMPT_PATH / "spell_check.md") as f:
-        prompt = f.read()
+    prompt = load_prompt("spell_check.md")
     prompt = prompt.format(query=text)
     result = chat(prompt)
     return result
 
+def rewrite_query(text):
+    prompt = load_prompt("rewrite_query.md")
+    prompt = prompt.format(query=text)
+    result = chat(prompt)
+    return result
+
+def expand_query(text):
+    prompt = load_prompt("expand_query.md")
+    prompt = prompt.format(query=text)
+    result = chat(prompt)
+    return result
+
+
+
 def test(text):
-    print(spell_check(text))
+    print(rewrite_query(text))

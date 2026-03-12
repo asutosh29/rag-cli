@@ -5,7 +5,7 @@ import numpy as np
 from pathlib import Path
 import json
 from lib.utils import load_movies , cosine_similarity
-from lib.llm import spell_check
+from lib.llm import spell_check, rewrite_query, expand_query
 import re
 from typing import DefaultDict
 class SemanticSearch:
@@ -208,10 +208,20 @@ def semantic_chunk(text: str, overlap=0,max_chunk_size=4)-> List[str]:
 
 ## API Functions
 def search_chunk_documents(query, limit=5,enhance=None):
-    if enhance == "spell":
-        enhanced_query = spell_check(query)
-        print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
-        query = enhanced_query
+    print(enhance)
+    match enhance:
+        case "spell":
+            enhanced_query = spell_check(query)
+            print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
+            query = enhanced_query
+        case "rewrite":
+            enhanced_query = rewrite_query(query)
+            print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
+            query = enhanced_query
+        case "expand":
+            enhanced_query = expand_query(query)
+            print(f"Enhanced query ({enhance}): '{query}' -> '{enhanced_query}'\n")
+            query = enhanced_query
     ss = ChunkedSemanticSearch()
     movies = load_movies()
     ss.load_or_create_chunk_embeddings(movies)

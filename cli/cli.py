@@ -23,7 +23,7 @@ def main():
     search_chunk_parser = subparser.add_parser("search_chunk", help="Search nearest documents using chunks")
     search_chunk_parser.add_argument("query", type=str, help="Search query")
     search_chunk_parser.add_argument("--limit",type=int, default=5, help="Number of top results")
-    search_chunk_parser.add_argument("--enhance",type=str,choices=["spell"], help="Corrects spelling mistakes")
+    search_chunk_parser.add_argument("--enhance",type=str,choices=["spell", "rewrite","expand"], help="Corrects spelling mistakes")
 
 
     chunk_parser = subparser.add_parser("chunk", help="Chunk the documents according to given chunking parameter")

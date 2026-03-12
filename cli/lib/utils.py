@@ -14,6 +14,15 @@ def load_movies() -> List[Movie]:
 
     return data['movies']
 
+def load_prompt(prompt_file_name) -> str:
+    prompt = None
+    try:
+        with open(PROMPT_PATH / prompt_file_name) as f:
+            prompt = f.read()
+    except FileNotFoundError:
+        raise FileExistsError("Prompt file not found")
+    return prompt
+
 def cosine_similarity(vec1, vec2):
     dot_product = np.dot(vec1, vec2)
     norm1 = np.linalg.norm(vec1)
