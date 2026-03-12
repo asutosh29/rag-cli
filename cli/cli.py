@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 from lib.semantic_search import verify_model, embed_text, verify_embeddings, embed_query_text, search_documents, chunk_text, overlap_chunking, embed_chunks, search_chunk_documents
+from lib.llm import spell_check, test
 import argparse
 
 def main():
@@ -22,6 +23,8 @@ def main():
     search_chunk_parser = subparser.add_parser("search_chunk", help="Search nearest documents using chunks")
     search_chunk_parser.add_argument("query", type=str, help="Search query")
     search_chunk_parser.add_argument("--limit",type=int, default=5, help="Number of top results")
+    search_chunk_parser.add_argument("--enhance",type=str,choices=["spell"], help="Corrects spelling mistakes")
+
 
     chunk_parser = subparser.add_parser("chunk", help="Chunk the documents according to given chunking parameter")
     chunk_parser.add_argument("text", type=str,help="text to be chunked")
@@ -29,11 +32,17 @@ def main():
     chunk_parser.add_argument("--max-chunk-size", type=int, default=4,help="number of words to be chunked in a single chunk")
 
     subparser.add_parser("embed_chunks", help="Embed documents with chunking")
+
+    test_parser = subparser.add_parser("test",help="Run test commands")
+    test_parser.add_argument("query",type=str,help="Text to be spell checked")
+
     args = parser.parse_args()
 
     match args.command:
+        case "test":
+            test(args.query)
         case "search_chunk":
-            search_chunk_documents(args.query, args.limit)
+            search_chunk_documents(args.query, args.limit, args.enhance)
         case "embed_chunks":
             embed_chunks()
         case "chunk":

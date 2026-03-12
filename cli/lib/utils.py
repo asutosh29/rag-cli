@@ -6,6 +6,7 @@ import numpy as np
 
 PROJECT_ROOT = Path(__file__).parent.parent.parent
 DATA_PATH = PROJECT_ROOT / "data" / "movies.json"
+PROMPT_PATH = PROJECT_ROOT / "cli" / "lib" / "prompts"
 
 def load_movies() -> List[Movie]:
     with open(DATA_PATH, 'r') as f:
